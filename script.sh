@@ -24,10 +24,6 @@ iDRAC=$1
 usr=$2
 pw=$3
 
-echo "iDRAC IP: $iDRAC"
-echo "iDRAC User: $usr"
-echo "iDRAC Password: $pw"
-
 # enables fan control via ipmitool
 ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x01 0x00
 
