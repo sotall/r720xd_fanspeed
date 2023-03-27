@@ -24,14 +24,21 @@ iDRAC=$1
 usr=$2
 pw=$3
 
+echo "iDRAC IP: $iDRAC"
+echo "iDRAC User: $usr"
+echo "iDRAC Password: $pw"
+
 # enables fan control via ipmitool
 ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x01 0x00
 
 # capture temp
-temperature=$(ipmitool -I lanplus -H $iDRAC -U $usr -P $pw sensor reading "Temp")
-cpu_temp=${temperature: -2} # get last 2 characters of string
+# temperature=$(ipmitool -I lanplus -H $iDRAC -U $usr -P $pw sensor reading "Temp")
+# cpu_temp=${temperature: -2} # get last 2 characters of string
 
-echo "CPU Temp: $cpu_temp"
+temp1=$(ipmitool -I lanplus -H $iDRAC -U $usr -P $pw sensor reading "Temp")
+current_temp=${temp1: -2}
+
+echo "CPU Temp: $temp1"
 echo "GPU Temp: $gpu_temp"
 
 
