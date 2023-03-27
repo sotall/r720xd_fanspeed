@@ -12,6 +12,17 @@ echo "-------------------------------------------------------------"
 
 # set persistence mode for gpus ( When persistence mode is enabled the NVIDIA driver remains loaded even when no active processes, 
 # stops modules being unloaded therefore stops settings changing when modules are reloaded
+persistence_mode=$(nvidia-smi --query-gpu="persistence_mode" --format=csv,noheader);
+if [ $persistence_mode = "Disabled" ]; then
+    echo "Enabling persistence mode"
+    nvidia-smi --persistence-mode=1
+else
+    echo "Persistence mode is already enabled"
+fi
+echo
+echo "-------------------------------------------------------------"
+
+
 nvidia-smi --persistence-mode=1
 
 #query gpu temperature
