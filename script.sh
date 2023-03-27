@@ -28,7 +28,8 @@ pw=$3
 ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x01 0x00
 
 # capture temp
-cpu_temp=${(ipmitool -I lanplus -H $iDRAC -U $usr -P $pw sensor reading "Temp"): -2} # get last 2 characters of string
+temperature=$(ipmitool -I lanplus -H $iDRAC -U $usr -P $pw sensor reading "Temp")
+cpu_temp=${temperature: -2} # get last 2 characters of string
 
 echo "CPU Temp: $cpu_temp"
 echo "GPU Temp: $gpu_temp"
