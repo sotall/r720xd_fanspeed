@@ -1,7 +1,18 @@
 #!/bin/bash
 
+echo "-------------------------------------------------------------"
+# set iDRAC IP
+iDRAC=$1
+echo "iDRAC IP: $iDRAC"
+
+# set iDRAC Credentials
+usr=$2
+pw=$3
+echo "iDRAC Username: $usr"
+
 # check for driver
 command -v nvidia-smi &> /dev/null || { echo >&2 "nvidia driver is not installed you will need to install this from community applications ... exiting."; exit 1; }
+echo
 echo "Nvidia drivers are installed"
 echo
 echo "I can see these Nvidia gpus in your server"
@@ -23,22 +34,37 @@ fi
 echo
 echo "-------------------------------------------------------------"
 
-# set iDRAC IP
-iDRAC=$1
-
-# set iDRAC Credentials
-usr=$2
-pw=$3
-
 # query gpu temperature
 gpu_temp=$(nvidia-smi --query-gpu="temperature.gpu" --format=csv,noheader);
 
 # query cpu temperature
-temperature=$(ipmitool -I lanplus -H $iDRAC -U $usr -P $pw sensor reading "Temp")
-cpu_temp=${temperature: -2} # get last 2 characters of string
+cpu1_temp=$(ipmitool -I lanplus -H  $iDRAC -U $usr -P $pw sdr type temperature | grep 0Eh | cut -d \| -f5 | grep -P -o '\d\d')
+cpu2_temp=$(ipmitool -I lanplus -H  $iDRAC -U $usr -P $pw sdr type temperature | grep 0Fh | cut -d \| -f5 | grep -P -o '\d\d')
 
-echo "CPU Temp: $cpu_temp"
+# query exhaust temperature
+exhaust_temp=$(ipmitool -I lanplus -H  $iDRAC -U $usr -P $pw sdr type temperature | grep 01h | cut -d \| -f5 | grep -P -o '\d\d')
+
+echo "CPU1 Temp: $cpu1_temp"
+echo "CPU2 Temp: $cpu2_temp"
+echo "Exhaust Temp: $exhaust_temp"
 echo "GPU Temp: $gpu_temp"
+
+# get highest cpu temp
+if [ $cpu1_temp -gt $cpu2_temp ]; then
+    cpu_temp=$cpu1_temp
+else
+    cpu_temp=$cpu2_temp
+fi
+echo "User highest CPU temp"
+echo "CPU Temp: $cpu_temp"
+
+# E5-2680 v2
+# temp max = 82c
+
+# Tesla P4
+# temp max = 90c
+# GPU Shutdown Temp: 94 C
+# GPU Slowdown Temp: 91 C
 
 # set fan speed
 # 00 - 0%  - 1800  RPM
@@ -57,28 +83,63 @@ echo "GPU Temp: $gpu_temp"
 # 50 - 80% - 15360 RPM
 # 64 - 100% - 19200 RPM
 
+fan_100_19200rpm="0x30 0x30 0x02 0xff 0x64"
+fan_080_15360rpm="0x30 0x30 0x02 0xff 0x50"
+fan_070_13440rpm="0x30 0x30 0x02 0xff 0x46"
+fan_060_11520rpm="0x30 0x30 0x02 0xff 0x3c"
+fan_050_09600rpm="0x30 0x30 0x02 0xff 0x32"
+fan_045_08760rpm="0x30 0x30 0x02 0xff 0x2d"
+fan_040_08040rpm="0x30 0x30 0x02 0xff 0x28"
+fan_035_07200rpm="0x30 0x30 0x02 0xff 0x23"
+fan_030_06480rpm="0x30 0x30 0x02 0xff 0x1e"
+fan_025_05640rpm="0x30 0x30 0x02 0xff 0x19"
+fan_020_04800rpm="0x30 0x30 0x02 0xff 0x14"
+fan_015_04080rpm="0x30 0x30 0x02 0xff 0x0f"
+fan_010_03240rpm="0x30 0x30 0x02 0xff 0x0a"
+fan_005_02400rpm="0x30 0x30 0x02 0xff 0x05"
+fan_000_01800rpm="0x30 0x30 0x02 0xff 0x00"
+
 # enables fan control via ipmitool
 ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x01 0x00
 
-# change fan speed hex value depending on temperature (0x00 = 0%, 0x64 = 100%)
-if [ $cpu_temp -ge 80 ]; then
-    echo "Setting fan speed to 100%"
-    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x02 0xff 0x64
-elif [ $cpu_temp -ge 70 ]; then
-    echo "Setting fan speed to 80%"
-    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x02 0xff 0x50
-elif [ $cpu_temp -ge 60 ]; then
+# set fan speed based on cpu temp and gpu temp
+if [ $cpu_temp -gt 75 ] || [ $gpu_temp -gt 75 ]; then
+    echo "Setting fan speed to 70%"
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_070_13440rpm
+elif [ $cpu_temp -gt 70 ] || [ $gpu_temp -gt 70 ]; then
     echo "Setting fan speed to 60%"
-    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x02 0xff 0x3c
-elif [ $cpu_temp -ge 50 ]; then
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_060_11520rpm
+elif [ $cpu_temp -gt 65 ] || [ $gpu_temp -gt 65 ]; then
+    echo "Setting fan speed to 50%"
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_050_09600rpm
+elif [ $cpu_temp -gt 60 ] || [ $gpu_temp -gt 60 ]; then
+    echo "Setting fan speed to 45%"
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_045_08760rpm
+elif [ $cpu_temp -gt 55 ] || [ $gpu_temp -gt 55 ]; then
     echo "Setting fan speed to 40%"
-    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x02 0xff 0x28
-elif [ $cpu_temp -ge 40 ]; then
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_040_08040rpm
+elif [ $cpu_temp -gt 50 ] || [ $gpu_temp -gt 50 ]; then
+    echo "Setting fan speed to 35%"
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_035_07200rpm
+elif [ $cpu_temp -gt 45 ] || [ $gpu_temp -gt 45 ]; then
+    echo "Setting fan speed to 30%"
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_030_06480rpm
+elif [ $cpu_temp -gt 40 ] || [ $gpu_temp -gt 40 ]; then
+    echo "Setting fan speed to 25%"
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_025_05640rpm
+elif [ $cpu_temp -gt 35 ] || [ $gpu_temp -gt 35 ]; then
     echo "Setting fan speed to 20%"
-    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x02 0xff 0x14
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_020_04800rpm
+elif [ $cpu_temp -gt 30 ] || [ $gpu_temp -gt 30 ]; then
+    echo "Setting fan speed to 15%"
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_015_04080rpm
+elif [ $cpu_temp -gt 25 ] || [ $gpu_temp -gt 25 ]; then
+    echo "Setting fan speed to 10%"
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_010_03240rpm
+elif [ $cpu_temp -gt 20 ] || [ $gpu_temp -gt 20 ]; then
+    echo "Setting fan speed to 5%"
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_005_02400rpm
 else
     echo "Setting fan speed to 0%"
-    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x02 0xff 0x00
+    ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw $fan_000_01800rpm
 fi
-
-
