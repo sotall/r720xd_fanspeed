@@ -50,7 +50,9 @@ gpu_temp=$(nvidia-smi --query-gpu="temperature.gpu" --format=csv,noheader)
 echo "GPU Temp: $gpu_temp"
 
 # set fan speed based on highest temperature
-declare -A fan_speeds=([100]=19200 [80]=15360 [70]=13440 [60]=11520 [50]=9600 [45]=8760 [40]=8040 [35]=7200 [30]=6480 [25]=5640 [20]=4800 [15]=4080 [10]=3240 [5]=2400)
+declare -A fan_speeds=(
+    [100]=19200 [80]=15360 [70]=13440 [60]=11520 [50]=9600 [45]=8760 [40]=8040 [35]=7200 [30]=6480 [25]=5640 [20]=4800 [15]=4080 [10]=3240 [5]=2400
+    )
 fan_speed=$(for temp in "${!fan_speeds[@]}"; 
 do [[ $cpu_temp -ge $temp || $gpu_temp -ge $temp ]] && echo "${fan_speeds[$temp]}" && break done)
 echo "Setting fan speed to ${fan_speed:-0} RPM"
