@@ -8,16 +8,16 @@ echo "-------------------------------------------------------------"
 
 # Set iDRAC IP address
 iDRAC=$1
-echo "iDRAC IP: $iDRAC"
 
 # Set iDRAC username and password
 usr=$2
 pw=$3
-echo "iDRAC Username: $usr"
+echo "iDRAC IP: $iDRAC Username: $usr"
 
 # Check if Nvidia drivers are installed
+# TODO - handle multiple GPUs
 if command -v nvidia-smi &>/dev/null; then
-    echo "Found Nvidia GPUs:"
+    echo -e "\nFound Nvidia GPUs:"
     nvidia-smi --list-gpus
 
     # If Nvidia GPUs are present and persistence mode is disabled, enable persistence mode
@@ -27,24 +27,36 @@ if command -v nvidia-smi &>/dev/null; then
 
     # Get the temperature of the highest temperature Nvidia GPU
     gpu_temp=$(nvidia-smi --query-gpu="temperature.gpu" --format=csv,noheader) || gpu_temp=0
+    highest_device=$(nvidia-smi --list-gpus | grep -oP 'GPU \d: \K.*(?= \(UUID:)')
 else
     # If Nvidia drivers are not installed, set GPU temperature to 0
     gpu_temp=0
 fi
 
-echo -e "\nGPU temp: $gpu_temp"
-
-temperature=$(ipmitool -I lanplus -H "$iDRAC" -U "$usr" -P "$pw" sdr type temperature)
-echo "$temp_output"
-
-# Set the highest temperature to the temperature of the highest temperature sensor
+# Set highest temperature to GPU temperature
+echo -e "\n$highest_device: $gpu_temp"
 highest_temp=$gpu_temp
-while read -r line; do
-    temp=$(echo "$line" | grep -oE '[[:digit:]]+ degrees C$' | cut -d' ' -f1)
-    ((temp > highest_temp)) && highest_temp=$temp
-done < <($temperature | grep -oE '[[:digit:]]{1,2}h')
 
-echo -e "\nHighest temp: $highest_temp"
+# Get temperature data and loop through lines
+temperature=$(ipmitool -I lanplus -H "$iDRAC" -U "$usr" -P "$pw" sdr type temperature)
+while read line; do
+    # Extract name, hex value, and temperature
+    device=$(echo $line | awk -F "|" '{print $1}' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    hex=$(echo $line | awk -F "|" '{print $2}' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    temp=$(echo $line | grep -oE '[[:digit:]]+ degrees C$' | cut -d' ' -f1)
+    
+    # Rename CPU temperature sensor
+    shopt -s nocasematch
+    if [[ "$device" == "temp" ]]; then device="CPU"; fi
+    echo "$device: $temp"
+
+    # Track highest temperature
+    if [[ $temp > $highest_temp ]]; then
+        highest_temp=$temp
+        highest_device=$device
+    fi
+done < <(echo "$temperature")
+echo -e "\nHighest temp: $highest_temp for $highest_device"
 
 # Set fan speed based on temperature
 declare -A fan_speeds=(
