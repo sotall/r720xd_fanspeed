@@ -34,14 +34,15 @@ fi
 
 echo -e "\nGPU temp: $gpu_temp"
 
+temperature=$(ipmitool -I lanplus -H "$iDRAC" -U "$usr" -P "$pw" sdr type temperature)
+echo "$temp_output"
+
 # Set the highest temperature to the temperature of the highest temperature sensor
 highest_temp=$gpu_temp
 while read -r line; do
     temp=$(echo "$line" | grep -oE '[[:digit:]]+ degrees C$' | cut -d' ' -f1)
-    echo -e "\n: $line"
-    echo -e "\nGPU temp: $cpu_temp"
     ((temp > highest_temp)) && highest_temp=$temp
-done < <(ipmitool -I lanplus -H "$iDRAC" -U "$usr" -P "$pw" sdr type temperature | grep -oE '[[:digit:]]{1,2}h')
+done < <($temperature | grep -oE '[[:digit:]]{1,2}h')
 
 echo -e "\nHighest temp: $highest_temp"
 
