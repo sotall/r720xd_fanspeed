@@ -17,7 +17,7 @@ echo "iDRAC Username: $usr"
 
 # Check if Nvidia drivers are installed
 if command -v nvidia-smi &>/dev/null; then
-    echo -e "\nNvidia drivers are installed\nI can see these Nvidia GPUs in your server\n"
+    echo "Found Nvidia GPUs:"
     nvidia-smi --list-gpus
 
     # If Nvidia GPUs are present and persistence mode is disabled, enable persistence mode
@@ -42,7 +42,9 @@ done < <(ipmitool -I lanplus -H "$iDRAC" -U "$usr" -P "$pw" sdr type temperature
 echo -e "\nHighest temp: $highest_temp"
 
 # Set fan speed based on temperature
-declare -A fan_speeds=([100]=0x64 [80]=0x50 [70]=0x46 [60]=0x3c [50]=0x32 [45]=0x2d [40]=0x28 [35]=0x23 [30]=0x1e [25]=0x19 [20]=0x14 [15]=0x0f [10]=0x0a [5]=0x05 [0]=0x00)
+declare -A fan_speeds=(
+    [100]=0x64 [80]=0x50 [70]=0x46 [60]=0x3c [50]=0x32 [45]=0x2d [40]=0x28 [35]=0x23 [30]=0x1e [25]=0x19 [20]=0x14 [15]=0x0f [10]=0x0a [5]=0x05 [0]=0x00
+)
 
 # Loop through the fan_speeds array and set the fan speed based on the highest temperature
 for temp in $(echo "${!fan_speeds[@]}" | tr ' ' '\n' | sort -n); do
@@ -60,8 +62,7 @@ for temp in $(echo "${!fan_speeds[@]}" | tr ' ' '\n' | sort -n); do
     fi
 done
 
-echo -e "\nhighest temp: $highest_temp"
 echo -e "\nSetting fan speed to around ${last_rpm} RPM"
 
 # Set fan speed
-ipmitool -I lanplus -H "$iDRAC" -U "$usr" -P "$pw" raw 0x30 0x30 
+ipmitool -I lanplus -H "$iDRAC" -U "$usr" -P "$pw" raw 0x30 0x30 0x02 0xff "${fan_percent:-0x19}"
