@@ -67,7 +67,7 @@ for temp in $(echo "${!fan_speeds[@]}" | tr ' ' '\n' | sort -n); do
     rpm=$(printf "%.0f" $rpm)
 
     if (($highest_temp >= $temp)); then
-        fan_percent=${fan_speeds[$temp - 5]}
+        fan_percent=${fan_speeds[$temp]}
         last_rpm=$rpm
     else
         break
