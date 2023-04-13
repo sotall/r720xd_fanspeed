@@ -1,9 +1,4 @@
 #!/bin/bash
-
-# This script sets the fan speed of an iDRAC-enabled server based on the highest temperature
-# of the system. It also checks if Nvidia drivers are installed and if Nvidia GPUs are
-# present in the system.
-
 echo "-------------------------------------------------------------"
 
 # Set iDRAC IP address
@@ -72,7 +67,7 @@ for temp in $(echo "${!fan_speeds[@]}" | tr ' ' '\n' | sort -n); do
     rpm=$(printf "%.0f" $rpm)
 
     if (($highest_temp >= $temp)); then
-        fan_percent=${fan_speeds[$temp]}
+        fan_percent=${fan_speeds[$temp - 5]}
         last_rpm=$rpm
     else
         break
