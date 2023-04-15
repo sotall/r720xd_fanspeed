@@ -55,7 +55,21 @@ echo -e "\nHighest temp: $highest_temp for $highest_device"
 
 # Set fan speed based on temperature
 declare -A fan_speeds=(
-    [100]=0x64 [80]=0x50 [70]=0x46 [60]=0x3c [50]=0x32 [45]=0x2d [40]=0x28 [35]=0x23 [30]=0x1e [25]=0x19 [20]=0x14 [15]=0x0f [10]=0x0a [5]=0x05 [0]=0x00
+    [80]=0x64  # 19200 RPM
+    [75]=0x50  # 15360 RPM
+    [70]=0x46  # 13440 RPM
+    [65]=0x3c  # 11520 RPM
+    [60]=0x32  # 9600 RPM
+    [55]=0x2d  # 8760 RPM
+    [50]=0x28  # 8040 RPM
+    [45]=0x23  # 7200 RPM
+    [40]=0x1e  # 6480 RPM
+    [35]=0x19  # 5640 RPM
+    [30]=0x14  # 4800 RPM
+    [25]=0x0f  # 4080 RPM
+    [20]=0x0a  # 3240 RPM
+    [15]=0x05  # 2400 RPM
+    [10]=0x00  # 1800 RPM 
 )
 
 # Loop through the fan_speeds array and set the fan speed based on the highest temperature
