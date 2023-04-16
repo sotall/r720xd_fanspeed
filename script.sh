@@ -105,7 +105,7 @@ for temp in $(echo "${!fan_speeds[@]}" | tr ' ' '\n' | sort -n); do
     fi
 done
 
-echo -e "\nSetting fan speed to around ${last_rpm} RPM"
+echo -e "\nSetting fan speed to around ${last_rpm} RPM - use Hex: ${fan_speed}"
 
 # Set fan speed
 ipmitool -I lanplus -H "$iDRAC" -U "$usr" -P "$pw" raw 0x30 0x30 0x02 0xff "${fan_speed:-0x19}"
