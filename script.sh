@@ -9,6 +9,9 @@ usr=$2
 pw=$3
 echo "iDRAC IP: $iDRAC Username: $usr"
 
+# enables fan control via ipmitool
+ipmitool -I lanplus -H $iDRAC -U $usr -P $pw raw 0x30 0x30 0x01 0x00
+
 # Check if Nvidia drivers are installed
 # TODO - handle multiple GPUs
 if command -v nvidia-smi &>/dev/null; then
