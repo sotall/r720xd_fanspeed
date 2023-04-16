@@ -69,20 +69,34 @@ declare -A fan_speeds=(
     [25]=0x0f  # 4080 RPM
     [20]=0x0a  # 3240 RPM
     [15]=0x05  # 2400 RPM
-    [10]=0x00  # 1800 RPM 
+    [10]=0x00  # 1800 RPM
+)
+
+declare -A fan_rpm=(
+    [80]=19200
+    [75]=15360
+    [70]=13440
+    [65]=11520
+    [60]=9600
+    [55]=8760
+    [50]=8040
+    [45]=7200
+    [40]=6480
+    [35]=5640
+    [30]=4800
+    [25]=4080
+    [20]=3240
+    [15]=2400
+    [10]=1800 
 )
 
 # Loop through the fan_speeds array and set the fan speed based on the highest temperature
 for temp in $(echo "${!fan_speeds[@]}" | tr ' ' '\n' | sort -n); do
     dec_value=$(printf "%d" ${fan_speeds[$temp]})
 
-    # Convert fan speed from hexadecimal to RPM
-    rpm=$(echo "172.8 * $dec_value + 1800 + 0.5" | bc)
-    rpm=$(printf "%.0f" $rpm)
-
     if (($highest_temp >= $temp)); then
-        fan_percent=${fan_speeds[$temp]}
-        last_rpm=$rpm
+        fan_speed=${fan_speeds[$temp]}
+        last_rpm=${fan_rpm[$temp]}
     else
         break
     fi
@@ -91,4 +105,4 @@ done
 echo -e "\nSetting fan speed to around ${last_rpm} RPM"
 
 # Set fan speed
-ipmitool -I lanplus -H "$iDRAC" -U "$usr" -P "$pw" raw 0x30 0x30 0x02 0xff "${fan_percent:-0x19}"
+ipmitool -I lanplus -H "$iDRAC" -U "$usr" -P "$pw" raw 0x30 0x30 0x02 0xff "${fan_speed:-0x19}"
